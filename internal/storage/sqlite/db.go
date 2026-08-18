@@ -105,10 +105,15 @@ func (d *DB) Migrate(ctx context.Context) error {
 }
 
 func (d *DB) Ping(ctx context.Context) error {
-	probeContext := context.WithoutCancel(ctx)
-	if ctx.Err() != nil {
-		probeContext = context.Background()
+	// If the caller has already canceled before the probe even starts, do not
+	// touch the connection pool: return immediately so the request is not kept
+	// alive and shutdown is not made to wait on a probe nobody will consume.
+	if err := ctx.Err(); err != nil {
+		return err
 	}
+	// Probe with a context that cannot be canceled by the caller, so an
+	// in-flight health check can complete even as the request is torn down.
+	probeContext := context.WithoutCancel(ctx)
 	return d.db.PingContext(probeContext)
 }
 func (d *DB) Close() error { return d.db.Close() }

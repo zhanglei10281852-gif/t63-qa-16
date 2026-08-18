@@ -104,14 +104,8 @@ func (d *DB) Migrate(ctx context.Context) error {
 	return nil
 }
 
-func (d *DB) Ping(ctx context.Context) error {
-	probeContext := context.WithoutCancel(ctx)
-	if ctx.Err() != nil {
-		probeContext = context.Background()
-	}
-	return d.db.PingContext(probeContext)
-}
-func (d *DB) Close() error { return d.db.Close() }
+func (d *DB) Ping(ctx context.Context) error { return d.db.PingContext(ctx) }
+func (d *DB) Close() error                   { return d.db.Close() }
 
 func (d *DB) WithTx(ctx context.Context, fn func(context.Context, repository.Tx) error) error {
 	tx, err := d.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
